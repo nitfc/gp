@@ -1,0 +1,332 @@
+<!DOCTYPE HTML>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Web Bluetooth API サンプル</title>
+<script>
+
+//================================================
+// グローバル変数
+//================================================
+var targetDevice = null;
+
+//================================================
+// UUID
+//================================================
+// サービスUUID
+const UUID_MY_SERVICE             = 'e95d6100-251d-470a-a062-fa1922dfa9a8'
+// DATA1 キャラクタリスティック UUID
+const UUID_DATA1_CHARACTERISTIC   = 'e95d9250-251d-470a-a062-fa1922dfa9a8'
+// DATA2 キャラクタリスティック UUID
+const UUID_DATA2_CHARACTERISTIC   = 'e95d1b25-251d-470a-a062-fa1922dfa9a8'
+// 取得間隔 キャラクタリスティック UUID
+const UUID_PERIOD_CHARACTERISTIC  = 'e95d1b27-251d-470a-a062-fa1922dfa9a8'
+
+//================================================
+// 接続
+//================================================
+async function ble_connect() {
+  // 接続済みチェック
+  if (targetDevice && targetDevice.gatt.connected){
+    console.log('接続中です');
+    toast_message('接続中です');
+    return;
+  }
+  
+  // スタート
+  console.log("START");
+  toast_message('START');
+  
+  //================================================
+  // デバイスのスキャン
+  //================================================
+  try {
+    targetDevice = await navigator.bluetooth.requestDevice  ({
+                            //filters: [
+                            //  { namePrefix: "mpy" }
+                            //],
+                            acceptAllDevices: true,
+                            optionalServices: [UUID_MY_SERVICE]
+                          });
+    console.log("device", targetDevice);
+    
+    // GATT接続
+    let server = await targetDevice.gatt.connect();
+    console.log('server', server);
+    
+    // プライマリーサービスの取得
+    let service = await server.getPrimaryService(UUID_MY_SERVICE);
+    try {
+      
+      // イベントハンドラの登録(DATA1 Notify)
+      let characteristic = await service.getCharacteristic(UUID_DATA1_CHARACTERISTIC);
+      await characteristic.startNotifications();
+      console.log('DATA1 Notify Event監視開始');
+      console.log('DATA1 : ', characteristic);
+      characteristic.addEventListener('characteristicvaluechanged',onData1Changed);
+    } catch(error) {
+      console.log(error);
+      toast_message('DATA1 Notify イベントハンドラ登録に失敗しました');
+    }
+    try {
+      // イベントハンドラの登録(PERIOD Notify)
+      let characteristic = await service.getCharacteristic(UUID_PERIOD_CHARACTERISTIC);
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged',onPeriodChanged);
+      console.log('Period Notify Event監視開始');
+      console.log('Period : ', characteristic);
+      toast_message('接続しました');
+    } catch(error) {
+      console.log(error);
+      toast_message('PERIOD Notify イベントハンドラ登録に失敗しました');
+    }
+    
+    // エディットボックスに設定済みの値で初期化
+    await write_period();
+  } catch(error) {
+    console.log(error);
+    toast_message('接続に失敗しました');
+  }
+
+  //================================================
+  // DATA1 Notify ハンドラ
+  //================================================
+  function onData1Changed (event) {
+    // eventから符号なし16bit(リトルエンディアン)データを取得
+    let data1 = event.target.value.getUint16(0, true);
+    let str = '0x' + data1.toString(16).padStart( 4, '0');
+    console.log('DATA : ' + str);
+
+    // ==== span要素の書き換え ====
+    document.getElementById("sensor_data11").innerText = str;
+
+    // ==== textareaの書き換え ====
+    let target_textarea = document.getElementById("sensor_data12");
+    target_textarea.value += '\n' + str;
+    
+    // 行数をカウント
+    const lines = target_textarea.value.split('\n').length;
+    
+  	// textareaの行数を超えた場合
+	  let rows = target_textarea.rows;
+	  if (lines > rows) {
+      // あふれた古い行を削除
+      const excessLines = lines - rows;
+      const newLines = target_textarea.value.split('\n').slice(excessLines).join('\n');
+      target_textarea.value = newLines;
+    }
+    // 常に最新行を表示(行数あふれを削除しているので、なくても大丈夫だが)
+    target_textarea.scrollTop = target_textarea.scrollHeight;
+  }
+
+  //================================================
+  // Period Notify ハンドラ
+  //================================================
+  function onPeriodChanged (event) {
+    // eventから符号なし16bit(リトルエンディアン)データを取得
+    let period = event.target.value.getUint16(0, true);
+    let str = period.toString(10);
+    console.log('Period : ' + str);
+    // 入力欄を書き換え
+    document.getElementById("period1").value = str;
+    toast_message(`Periodを${period}に変更しました`);
+  }
+}
+
+
+//================================================
+// Data2 Read
+//================================================
+async function read_data2() {
+  // 接続済みチェック
+  if (!targetDevice || !targetDevice.gatt.connected){
+    console.log('接続されていません');
+    toast_message('接続されていません');
+    return;
+  }
+  
+  // プライマリーサービスの取得
+  try {
+    let server = targetDevice.gatt;
+    service = await server.getPrimaryService(UUID_MY_SERVICE);
+    // Characteristicの取得
+    characteristic = await service.getCharacteristic(UUID_DATA2_CHARACTERISTIC);
+    value = await characteristic.readValue();
+    // 符号なし16bit(リトルエンディアン)データを取得
+    data = value.getUint16(0, true);
+    str = data.toString(10);
+    console.log('DATA2  : ' + str);
+    // span要素の書き換え
+    document.getElementById("sensor_data21").innerText = str;
+  } catch(error) {
+    // エラー
+    console.log(error);
+    toast_message('DATA2のリードに失敗しました');
+  }
+}
+
+//================================================
+// 送信間隔Write
+//================================================
+async function write_period() {
+  // 接続済みチェック
+  if (!targetDevice || !targetDevice.gatt.connected){
+    console.log('接続されていません');
+    toast_message('接続されていません');
+    return;
+  }
+
+  // エディットボックス値取得
+  let inputValue = document.getElementById("period1").value;
+  if (isNaN(inputValue)) {
+    console.log('数値ではありません');
+    toast_message('数値ではありません');
+    return;
+  }
+  // 送信間隔値
+  let interval = parseInt(inputValue);
+  
+  // 送信処理
+  await write_period_operation(interval);
+}
+
+//================================================
+// 送信間隔Write 送信処理
+//================================================
+async function write_period_operation(interval) {
+  try {
+    // プライマリーサービスの取得
+    let server = targetDevice.gatt;
+    let service = await server.getPrimaryService(UUID_MY_SERVICE);
+    // Characteristicの取得
+    let characteristic = await service.getCharacteristic(UUID_PERIOD_CHARACTERISTIC);
+    // DATA1の取得間隔のwrite
+    await characteristic.writeValueWithResponse(new Uint16Array([interval]));
+    console.log(`取得間隔を${interval}に設定しました`);
+  } catch(error) {
+    // エラー
+    console.log(error);
+    toast_message('取得間隔の設定に失敗しました');
+  }
+}
+
+
+//================================================
+// 切断
+//================================================
+function disconnect() {
+  // 接続済みチェック
+  if (!targetDevice || !targetDevice.gatt.connected){
+    console.log('接続されていません');
+    toast_message('接続されていません');
+    return;
+  }
+  // 切断
+  targetDevice.gatt.disconnect();
+  toast_message("切断しました");
+}
+
+//================================================
+// なんちゃってトースト表示
+// msgをdisptime(msec)表示後、fadetime(msec)でフェードアウトする
+//================================================
+function toast_message(msg, disptime=2000, fadetime=2000) {
+  let elm = document.getElementById("toast");
+  elm.innerText = msg;            // 表示メッセージの変更
+  elm.style.animation = "none";   // アニメーションをキャンセルして表示する
+  setTimeout(() => {              // disptime経過後、アニメーションを開始する。
+    elm.style.animation = `fadeOut ${fadetime}ms forwards`;
+  }, disptime);
+}
+
+
+//================================================
+// デバッグ出力
+// ちょっとしたデバッグ用
+// androidだとconsoleが見えないので
+// 暫定的にsensor_data12のtextareaに表示
+//================================================
+function debug_out(str) {
+  document.getElementById("sensor_data12").value += "\n" + str;      // textareaにデバッグ出力
+}
+</script>
+</head>
+
+<style>
+/* ボタン類を大きく表示するためのclass */
+.font-large{
+    font-size: 130%;
+}
+
+/* 上下中央 */
+.vertical_middle{
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 上揃え */
+.vertical_top{
+  display: inline-block;
+  vertical-align: top;
+}
+
+/* フェードアウトのキーフレーム */
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* トースト表示領域 */
+#toast{
+  /* 背景色 */
+  background-color: rgb(128,256,128);
+  /* 0secでアニメーションして表示を消しておく */
+  animation: fadeOut 0s forwards;
+}
+</style>
+
+<body>
+<font size="5">
+<div id="BLE_sample">
+  <!-- トースト表示領域 -->
+  <div id="toast">
+    メッセージ領域
+  </div>
+  <h3>Web Bluetooth API サンプル</h1>
+  
+  <div id="BLE_button">
+    <input type="button" value="接続" onclick="ble_connect();" class="font-large"/> 
+    <input type="button" value="切断" onclick="disconnect();" class="font-large"/> 
+  </div>
+  
+  <div id="BLE_period">
+    <p>
+      <span class="vertical_middle">測定間隔：</span>
+      <input type="text" id="period1" size="5" value="1000" class="font-large vertical_middle">
+      <input type="button" value="WRITE" onclick="write_period();" class="font-large vertical_middle"/> 
+    </p>
+  <div>
+  
+  <div id="BLE_DATA2">
+    <p>DATA2：
+      <input type="button" value="READ" onclick="read_data2();" class="font-large vertical_middle"/> 
+      <span id="sensor_data21">--</span>
+    </p>
+  </div>
+
+  <div id="BLE_DATA1">
+    <p>DATA1：
+      <span id="sensor_data11">--</span></p>
+    <p>
+      <span class="vertical_top">DATA1：</span>
+      <textarea id="sensor_data12" cols="20" rows="10" readonly class="font-large vertical_top"></textarea></div>
+    </p>
+  </div>
+</div>
+</font>
+</body>
+</html>
