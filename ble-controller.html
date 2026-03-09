@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PicoNest BLE Controller</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #E8821A;
+    --orange-light: #F9A84D;
+    --orange-dark: #C46A0E;
+    --bg: #F5F3EF;
+    --surface: #FFFFFF;
+    --surface2: #EEEBE4;
+    --border: #DDD9CE;
+    --text: #2C2A25;
+    --text-muted: #9B9285;
+    --shadow: 0 2px 12px rgba(44,42,37,0.10);
+    --shadow-lg: 0 8px 32px rgba(44,42,37,0.14);
+    --radius: 16px;
+    --connected: #34C759;
+    --disconnected: #FF3B30;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────────── */
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--orange);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+  .logo-text span { color: var(--orange); }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--disconnected);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .status-dot.connected { background: var(--connected); box-shadow: 0 0 6px var(--connected); }
+
+  .status-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .connect-btn {
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .connect-btn:hover { background: var(--orange-dark); transform: translateY(-1px); }
+  .connect-btn:active { transform: translateY(0); }
+  .connect-btn.connected { background: var(--surface2); color: var(--text-muted); }
+
+  /* ─── MAIN CONTROLLER AREA ────────────────────────────── */
+  .controller {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 16px;
+    gap: 10px;
+  }
+
+  /* ─── TOP ROW: L/R + START/SELECT ─────────────────────── */
+  .top-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .shoulder-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .shoulder-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    width: 56px;
+    height: 36px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.08s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 0 var(--border);
+  }
+  .shoulder-btn.pressed {
+    background: var(--orange-light);
+    border-color: var(--orange);
+    color: white;
+    transform: translateY(3px);
+    box-shadow: none;
+  }
+
+  .center-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  .meta-btn {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.08s;
+  }
+  .meta-btn.pressed {
+    background: var(--border);
+    transform: scale(0.95);
+  }
+
+  /* ─── BOTTOM ROW: JOYSTICK + BUTTONS ──────────────────── */
+  .bottom-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex: 1;
+  }
+
+  /* ─── JOYSTICK ─────────────────────────────────────────── */
+  .joystick-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .joystick-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    box-shadow: var(--shadow-lg), inset 0 2px 8px rgba(0,0,0,0.06);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .joystick-bg-ring {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 2px dashed var(--border);
+    pointer-events: none;
+  }
+
+  .joystick-crosshair {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .joystick-crosshair::before,
+  .joystick-crosshair::after {
+    content: '';
+    position: absolute;
+    background: var(--border);
+  }
+  .joystick-crosshair::before { width: 100%; height: 1px; }
+  .joystick-crosshair::after { width: 1px; height: 100%; }
+
+  .joystick-knob {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #fff 0%, var(--surface2) 100%);
+    border: 3px solid var(--orange);
+    box-shadow: 0 4px 16px rgba(232,130,26,0.30), 0 2px 4px rgba(0,0,0,0.1);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    transition: box-shadow 0.1s;
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .joystick-knob.active {
+    box-shadow: 0 4px 20px rgba(232,130,26,0.50), 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .joystick-knob-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--orange);
+    opacity: 0.5;
+  }
+
+  .joystick-values {
+    display: flex;
+    gap: 12px;
+  }
+  .joystick-val {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 70px;
+    text-align: center;
+  }
+  .joystick-val span { color: var(--orange); font-weight: 700; }
+
+  /* ─── CENTER INFO ──────────────────────────────────────── */
+  .center-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .pico-icon {
+    width: 48px; height: 48px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .ble-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .ble-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--disconnected);
+    transition: all 0.3s;
+  }
+  .ble-dot.on { background: var(--connected); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ─── ABXY BUTTONS ─────────────────────────────────────── */
+  .buttons-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .abxy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 6px;
+    width: 160px;
+    height: 160px;
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.08s;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.20);
+    display: flex; align-items: center; justify-content: center;
+    align-self: center;
+    justify-self: center;
+  }
+  .action-btn.pressed {
+    transform: translateY(4px);
+    box-shadow: none;
+  }
+
+  .btn-a { background: #FF453A; color: white; grid-column: 3; grid-row: 2; }
+  .btn-b { background: #FFD60A; color: #5a4400; grid-column: 2; grid-row: 3; }
+  .btn-x { background: #007AFF; color: white; grid-column: 2; grid-row: 1; }
+  .btn-y { background: #34C759; color: white; grid-column: 1; grid-row: 2; }
+
+  /* ─── DEBUG LOG ─────────────────────────────────────────── */
+  .debug-panel {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    flex-shrink: 0;
+  }
+
+  .debug-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .debug-log {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--orange);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ─── NOTIFICATION TOAST ───────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 100;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🕹️</div>
+    <div class="logo-text">Pico<span>Nest</span> BLE</div>
+  </div>
+  <div class="status-row">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-text" id="statusText">DISCONNECTED</div>
+  </div>
+  <button class="connect-btn" id="connectBtn" onclick="toggleConnect()">接続する</button>
+</header>
+
+<!-- CONTROLLER -->
+<div class="controller">
+
+  <!-- TOP ROW: L/R + SELECT/START -->
+  <div class="top-row">
+    <div class="shoulder-group">
+      <button class="shoulder-btn" id="btnL" data-bit="4">L</button>
+      <button class="shoulder-btn" id="btnR" data-bit="5">R</button>
+    </div>
+    <div class="center-btns">
+      <button class="meta-btn" id="btnSelect" data-bit="6">SELECT</button>
+      <button class="meta-btn" id="btnStart" data-bit="7">START</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW: JOYSTICK + CENTER + ABXY -->
+  <div class="bottom-row">
+    <!-- JOYSTICK -->
+    <div class="joystick-area">
+      <div class="joystick-container" id="joystickArea">
+        <div class="joystick-bg-ring"></div>
+        <div class="joystick-crosshair"></div>
+        <div class="joystick-knob" id="joystickKnob">
+          <div class="joystick-knob-dot"></div>
+        </div>
+      </div>
+      <div class="joystick-values">
+        <div class="joystick-val">X: <span id="joyX">0</span></div>
+        <div class="joystick-val">Y: <span id="joyY">0</span></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center-info">
+      <div class="pico-icon">🫐</div>
+      <div class="ble-indicator">
+        <div class="ble-dot" id="bleDot"></div>
+        BLE
+      </div>
+    </div>
+
+    <!-- ABXY -->
+    <div class="buttons-area">
+      <div class="abxy-grid">
+        <button class="action-btn btn-x" id="btnX" data-bit="2">X</button>
+        <button class="action-btn btn-y" id="btnY" data-bit="3">Y</button>
+        <button class="action-btn btn-a" id="btnA" data-bit="0">A</button>
+        <button class="action-btn btn-b" id="btnB" data-bit="1">B</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEBUG LOG -->
+  <div class="debug-panel">
+    <div class="debug-label">送信ログ</div>
+    <div class="debug-log" id="debugLog">-- 未接続 --</div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BLE 定数
+// ═══════════════════════════════════════════════════════
+const BLE_SERVICE_UUID       = '0000ffe0-0000-1000-8000-00805f9b34fb';
+const BLE_CHAR_JOYSTICK_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+const BLE_CHAR_BUTTON_UUID   = '0000ffe2-0000-1000-8000-00805f9b34fb';
+
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+let device = null, server = null;
+let charJoystick = null, charButton = null;
+let isConnected = false;
+let buttonState = 0x00;
+let joyX = 0, joyY = 0;
+let lastJoyX = 0, lastJoyY = 0;
+let lastButtonState = 0xFF;  // 強制最初送信
+
+// ═══════════════════════════════════════════════════════
+//  BLE 接続
+// ═══════════════════════════════════════════════════════
+async function toggleConnect() {
+  if (isConnected) {
+    disconnect();
+  } else {
+    await connect();
+  }
+}
+
+async function connect() {
+  if (!navigator.bluetooth) {
+    showToast('❌ Web Bluetooth非対応ブラウザです');
+    setDebug('Web Bluetooth APIが利用できません');
+    return;
+  }
+  try {
+    showToast('🔍 デバイスを検索中...');
+    setDebug('BLEスキャン中...');
+
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [BLE_SERVICE_UUID] }],
+      optionalServices: [BLE_SERVICE_UUID]
+    });
+
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+
+    setDebug(`接続中: ${device.name || 'Pico'}`);
+    server = await device.gatt.connect();
+
+    const service = await server.getPrimaryService(BLE_SERVICE_UUID);
+    charJoystick = await service.getCharacteristic(BLE_CHAR_JOYSTICK_UUID);
+    charButton   = await service.getCharacteristic(BLE_CHAR_BUTTON_UUID);
+
+    setConnected(true);
+    showToast(`✅ ${device.name || 'Pico'} に接続しました`);
+    setDebug(`接続完了: ${device.name || 'Pico'}`);
+  } catch (e) {
+    if (e.name !== 'NotFoundError') {
+      showToast('❌ 接続失敗: ' + e.message);
+      setDebug('エラー: ' + e.message);
+    } else {
+      setDebug('キャンセルされました');
+    }
+  }
+}
+
+function disconnect() {
+  if (device && device.gatt.connected) {
+    device.gatt.disconnect();
+  }
+}
+
+function onDisconnected() {
+  setConnected(false);
+  showToast('📡 切断されました');
+  setDebug('切断');
+}
+
+function setConnected(v) {
+  isConnected = v;
+  document.getElementById('statusDot').classList.toggle('connected', v);
+  document.getElementById('statusText').textContent = v ? 'CONNECTED' : 'DISCONNECTED';
+  document.getElementById('connectBtn').textContent  = v ? '切断する' : '接続する';
+  document.getElementById('connectBtn').classList.toggle('connected', v);
+  document.getElementById('bleDot').classList.toggle('on', v);
+}
+
+// ═══════════════════════════════════════════════════════
+//  送信
+// ═══════════════════════════════════════════════════════
+async function sendJoystick() {
+  if (!charJoystick || !isConnected) return;
+  if (joyX === lastJoyX && joyY === lastJoyY) return;
+  lastJoyX = joyX; lastJoyY = joyY;
+  try {
+    const data = new Int8Array([joyX, joyY]);
+    await charJoystick.writeValueWithoutResponse(data.buffer);
+    setDebug(`JOY X:${joyX.toString().padStart(4)} Y:${joyY.toString().padStart(4)}`);
+  } catch(e) {}
+}
+
+async function sendButtons() {
+  if (!charButton || !isConnected) return;
+  if (buttonState === lastButtonState) return;
+  lastButtonState = buttonState;
+  try {
+    const data = new Uint8Array([buttonState]);
+    await charButton.writeValueWithoutResponse(data.buffer);
+    const bits = buttonState.toString(2).padStart(8, '0');
+    setDebug(`BTN 0b${bits} (0x${buttonState.toString(16).padStart(2,'0').toUpperCase()})`);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+//  JOYSTICK
+// ═══════════════════════════════════════════════════════
+const joystickArea = document.getElementById('joystickArea');
+const knob = document.getElementById('joystickKnob');
+let joystickActive = false;
+let joystickOrigin = { x: 0, y: 0 };
+const JOYSTICK_RADIUS = 80;  // container radius
+const KNOB_RADIUS = 48;      // max travel
+
+function getCenter(el) {
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function startJoystick(cx, cy) {
+  joystickActive = true;
+  joystickOrigin = { x: cx, y: cy };
+  knob.classList.add('active');
+}
+
+function moveJoystick(cx, cy) {
+  if (!joystickActive) return;
+  let dx = cx - joystickOrigin.x;
+  let dy = cy - joystickOrigin.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > KNOB_RADIUS) {
+    dx = dx / dist * KNOB_RADIUS;
+    dy = dy / dist * KNOB_RADIUS;
+  }
+  knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  joyX = Math.round(dx / KNOB_RADIUS * 127);
+  joyY = Math.round(dy / KNOB_RADIUS * 127);
+  document.getElementById('joyX').textContent = joyX;
+  document.getElementById('joyY').textContent = joyY;
+  sendJoystick();
+}
+
+function stopJoystick() {
+  if (!joystickActive) return;
+  joystickActive = false;
+  knob.style.transform = 'translate(-50%, -50%)';
+  knob.classList.remove('active');
+  joyX = 0; joyY = 0;
+  document.getElementById('joyX').textContent = '0';
+  document.getElementById('joyY').textContent = '0';
+  sendJoystick();
+}
+
+// Touch
+joystickArea.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const c = getCenter(joystickArea);
+  startJoystick(c.x, c.y); // 常に中心から
+  // 実際のタッチ位置で即移動
+  moveJoystick(t.clientX, t.clientY);
+}, { passive: false });
+
+joystickArea.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  moveJoystick(t.clientX, t.clientY);
+}, { passive: false });
+
+joystickArea.addEventListener('touchend', e => {
+  e.preventDefault();
+  stopJoystick();
+}, { passive: false });
+
+// Mouse (PC用)
+joystickArea.addEventListener('mousedown', e => {
+  e.preventDefault();
+  const c = getCenter(joystickArea);
+  startJoystick(c.x, c.y);
+  moveJoystick(e.clientX, e.clientY);
+});
+
+document.addEventListener('mousemove', e => {
+  if (!joystickActive) return;
+  moveJoystick(e.clientX, e.clientY);
+});
+
+document.addEventListener('mouseup', () => stopJoystick());
+
+// ═══════════════════════════════════════════════════════
+//  ボタン共通処理
+// ═══════════════════════════════════════════════════════
+function setupButton(el) {
+  const bit = parseInt(el.dataset.bit);
+
+  const press = (e) => {
+    e.preventDefault();
+    el.classList.add('pressed');
+    buttonState |= (1 << bit);
+    sendButtons();
+  };
+  const release = (e) => {
+    e.preventDefault();
+    el.classList.remove('pressed');
+    buttonState &= ~(1 << bit);
+    sendButtons();
+  };
+
+  el.addEventListener('touchstart', press, { passive: false });
+  el.addEventListener('touchend', release, { passive: false });
+  el.addEventListener('touchcancel', release, { passive: false });
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+  el.addEventListener('mouseleave', release);
+}
+
+// 全ボタンに設定
+['btnA','btnB','btnX','btnY','btnL','btnR','btnSelect','btnStart'].forEach(id => {
+  setupButton(document.getElementById(id));
+});
+
+// ═══════════════════════════════════════════════════════
+//  ユーティリティ
+// ═══════════════════════════════════════════════════════
+function setDebug(msg) {
+  document.getElementById('debugLog').textContent = msg;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Bluetooth非対応チェック
+if (!navigator.bluetooth) {
+  setDebug('⚠️ このブラウザはWeb Bluetooth非対応です（Chrome推奨）');
+}
+</script>
+</body>
+</html>
