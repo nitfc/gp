@@ -141,11 +141,12 @@
 
   .joystick-knob {
     position: absolute;
-    width: 64px;
-    height: 64px;
+    width: 80px; /*64px;*/
+    height: 80px; /*64px;*/
     border-radius: 50%;
-    background: linear-gradient(145deg, #fff 0%, var(--surface2) 100%);
-    border: 3px solid var(--orange);
+    background: radial-gradient(var(--orange-light), var(--orange) 70%);*/
+    background-color:var(--orange);
+    border: 4px solid var(--orange);
 
     display: flex;
     align-items: center;
@@ -161,20 +162,92 @@
     justify-content: center;  /* ★ 中央揃え */
   }
 
-  .joystick-values {
-    display: flex;
-    gap: 12px;
-  }
+.joy-dir-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 
-  .joystick-val {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 3px 10px;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+/* ▼ 四方向三角形（上・下・左・右） */
+.joy-dir-marker::before,
+.joy-dir-marker::after,
+.joy-dir-marker div::before,
+.joy-dir-marker div::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0.8;
+}
+
+/* 上向き三角形 */
+.joy-dir-marker::before {
+  top: -28px;
+  left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 10px solid var(--bg);
+}
+
+/* 下向き三角形 */
+.joy-dir-marker::after {
+  top: 16px;
+  left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 10px solid var(--bg);
+}
+
+/* 左右の三角形は子要素で */
+.joy-dir-marker div::before {
+  left: -28px;
+  top: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 10px solid var(--bg);
+}
+
+.joy-dir-marker div::after {
+  left: 16px;
+  top: -8px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 10px solid var(--bg);
+}
+
+/* ジョイスティックラベル */
+
+.joy-label {
+  position: absolute;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 4px;
+  width: 52px;                   /* ★固定幅 */
+  text-align: left;                /* 左寄せにも可 */
+  pointer-events: none;              /* UI操作の邪魔をしない */
+  user-select: none;
+}
+
+/* Xラベル → 右上配置（変数で調整可能） */
+.joy-label-x {
+  top: -20px;
+  right: -10px;
+}
+
+/* Yラベル → 左上配置（変数で調整可能） */
+.joy-label-y {
+  top: -20px;
+  left: -10px;
+}
 
   /* ========= 右下 ABXY ========= */
   .buttons-area {
@@ -211,6 +284,73 @@
   .btn-y { background: #34C759; color: white; grid-column: 1; grid-row: 2; }
   .btn-a { background: #FF453A; color: white; grid-column: 3; grid-row: 2; }
   .btn-b { background: #FFD60A; color: #5a4400; grid-column: 2; grid-row: 3; }
+
+  
+/* R1/R2，L1/L2ボタン */
+
+.right-shoulder-buttons {
+  position: absolute;   /* ★ これで任意位置に置けるようになる */
+  bottom:220px;
+  right: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.left-shoulder-buttons {
+  position: absolute;   /* ★ これで任意位置に置けるようになる */
+  bottom: 220px;
+  left: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.right-shoulder-buttons div, .left-shoulder-buttons div {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.shoulder-btn {
+  width: 100px;
+  height: 42px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: 0.08s;
+}
+
+.shoulder-btn.pressed {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+
+.right-shoulder-buttons .indicator, .left-shoulder-buttons .indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ddd;
+  opacity: 0.4;
+  margin: auto;
+  transition: all 0.15s;
+}
+
+.right-shoulder-buttons .indicator.on, .left-shoulder-buttons .indicator.on {
+  background: var(--orange);
+  opacity: 1;
+  box-shadow:
+    inset 0 0 4px rgba(255,255,255,0.6),
+    0 0 6px var(--orange);
+}
 
   
   /* ボタン押し込みアニメーション */
@@ -261,6 +401,300 @@
 
 }
 
+/* ======== スライダ全体 ======== */
+.slider-area {
+  position: absolute;
+  bottom: 16px;
+  left: 200px;  /* 位置は自由に調整してください */
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+/* 外枠 */
+.slider-container {
+  position: relative;
+  margin:auto;
+  width: 40px;
+  height: 200px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 40px;
+  box-shadow: var(--shadow-lg);
+  overflow: visible;
+}
+
+/* トラック中央線（ジョイスティックの crosshair と統一） */
+.slider-track {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--border);
+  transform: translateX(-50%);
+}
+
+/* ノブ（ジョイスティックと同じデザイン） */
+.slider-knob {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff 0%, var(--surface2) 100%);
+  border: 3px solid var(--orange);
+  box-shadow: 0 4px 16px rgba(232,130,26,0.30);
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  /* pointer-events: none; */
+}
+
+/* モード視認用 */
+.slider-marker {
+  position: absolute;
+  width: 65%;
+  height: 65%;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: 0.15s;
+  border: 1.5px solid var(--orange);
+  color: var(--orange-light);
+  text-align: center;
+  line-height: 200%;
+}
+
+
+.slider-label {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  text-align:center;
+  color: var(--text-muted);
+  width: 48px; /*fit-content;*/
+  box-shadow: var(--shadow);
+  margin-bottom: 6px;
+  user-select: none;
+}
+
+/* ポップアップ */
+.popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.popup-window {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  width: 280px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.popup-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--text);
+  text-align: center;
+}
+
+.popup-section {
+  margin-bottom: 16px;
+}
+
+.popup-section label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: var(--text-muted);
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.popup-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.popup-btn-primary {
+  background: var(--orange);
+  color: white;
+}
+
+/* ======== Settings Popup UI ======== */
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 12px;
+}
+
+.settings-window {
+  width: 92vw;
+  max-width: 900px;       /* 横長画面に最適化 */
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+/* 横並びのスライダー設定エリア（最大4つ） */
+.settings-sliders-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+
+  width: 100%;
+}
+
+/* 各スライダーの設定カード */
+.settings-slider-card {
+  flex: 1;
+  min-width: 0;    /* 横画面でブロックが縮んでも崩れない */
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/*
+.settings-slider-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+  background: var(--surface2);
+}
+*/
+.settings-slider-title {
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.settings-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.settings-radio-row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.settings-radio-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.settings-btn {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.settings-btn-primary {
+  background: var(--orange);
+  color: white;
+  border: none;
+}
+
+.settings-option-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.settings-option-btn {
+  flex: 1;
+  padding: 12px 8px;
+  text-align: center;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+
+  transition: 0.15s;
+}
+
+.settings-option-btn.selected {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange-dark);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.settings-option-btn:active {
+  transform: scale(0.96);
+}
+
   /* ========= Toast ========= */
   .toast {
     position: fixed;
@@ -284,6 +718,9 @@
 
 <body>
 
+<!-- ボタン用サウンドファイルをロード -->
+<audio id="btnClickSound" src="./button-click-solid-voiced.mp3" preload="auto"></audio>
+
 <!-- 接続ボタン & ログ（中央上部） -->
 <div class="connect-panel">
 
@@ -301,22 +738,74 @@
   <!-- 左下ジョイスティック -->
   <div class="joystick-area">
     <div class="joystick-container" id="joystickArea">
+      <div class="joy-label joy-label-x">X: <span id="joyX">0</span></div>
+      <div class="joy-label joy-label-y">Y: <span id="joyY">0</span></div>
+
       <div class="joystick-bg-ring"></div>
       <div class="joystick-crosshair"></div>
       <div class="joystick-knob" id="joystickKnob">
-        <div style="width:12px;height:12px;background:var(--orange);border-radius:50%;opacity:0.5;"></div>
+        <div class="joy-dir-marker">
+            <div></div>
+        </div>
       </div>
     </div>
 
+    <!--
     <div class="joystick-values">
       <div class="joystick-val">X: <span id="joyX">0</span></div>
       <div class="joystick-val">Y: <span id="joyY">0</span></div>
     </div>
+-->
   </div>
+
+  <!-- スライダー群 -->
+<div class="slider-area">
+  <!-- スライダー #1 -->
+  <div class="slider-block" data-slider-id="0">
+    <div class="slider-label"><span class="slider-value">0</span></div>
+    <div class="slider-container">
+      <div class="slider-track"></div>
+      <div class="slider-knob">
+        <div class="slider-marker">S1</div>
+      </div>
+    </div>
+  </div>
+  <!-- スライダー #2 -->
+  <div class="slider-block" data-slider-id="1">
+    <div class="slider-label"><span class="slider-value">0</span></div>
+    <div class="slider-container">
+      <div class="slider-track"></div>
+      <div class="slider-knob">
+        <div class="slider-marker">S2</div>
+      </div>
+    </div>
+  </div>
+  <!-- スライダー #3 -->
+  <div class="slider-block" data-slider-id="2">
+    <div class="slider-label"><span class="slider-value">0</span></div>
+    <div class="slider-container">
+      <div class="slider-track"></div>
+      <div class="slider-knob">
+        <div class="slider-marker">S3</div>
+      </div>
+    </div>
+  </div>
+  <!-- スライダー #4 -->
+   <!--
+  <div class="slider-block" data-slider-id="3">
+    <div class="slider-label"><span class="slider-value">0</span></div>
+    <div class="slider-container">
+      <div class="slider-track"></div>
+      <div class="slider-knob">
+        <div class="slider-marker">S4</div>
+      </div>
+    </div>
+  </div>
+-->
+</div>
 
   <!-- 右下 ABXY -->
   <div class="buttons-area">
-    
     <!-- インジケータ（左側） -->
     <div class="indicator-grid">
       <div class="indicator" id="indX" style="grid-row:1;grid-column:2; color:#007AFF;"></div>
@@ -325,7 +814,7 @@
       <div class="indicator" id="indB" style="grid-row:3;grid-column:2; color:#FFD60A;"></div>
     </div>
 
-    <!-- ボタン -->
+    <!-- ABXY ボタン -->
     <div class="abxy-grid">
       <button class="action-btn btn-x" id="btnX" data-bit="2">X</button>
       <button class="action-btn btn-y" id="btnY" data-bit="3">Y</button>
@@ -333,6 +822,30 @@
       <button class="action-btn btn-b" id="btnB" data-bit="1">B</button>
     </div>
   </div>
+
+    <!-- ←ショルダーボタン with インジケータ -->
+    <div class="left-shoulder-buttons">
+        <div>
+            <button class="shoulder-btn" id="btnL2" data-bit="7">L2</button>
+            <div class="indicator" id="indL2"></div>
+        </div>
+        <div>
+            <button class="shoulder-btn" id="btnL1" data-bit="6">L1</button>
+            <div class="indicator" id="indL1"></div>
+        </div>
+    </div>
+
+    <!-- 右ショルダーボタン with インジケータ -->
+    <div class="right-shoulder-buttons">
+        <div>
+            <div class="indicator" id="indR2"></div>
+            <button class="shoulder-btn" id="btnR2" data-bit="5">R2</button>
+        </div>
+        <div>
+            <div class="indicator" id="indR1"></div>
+            <button class="shoulder-btn" id="btnR1" data-bit="4">R1</button>
+        </div>
+    </div>
 
 </div>
 
@@ -343,6 +856,7 @@
 const BLE_SERVICE_UUID       = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const BLE_CHAR_JOYSTICK_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
 const BLE_CHAR_BUTTON_UUID   = '0000ffe2-0000-1000-8000-00805f9b34fb';
+const BLE_CHAR_SLIDER_UUID   = '0000ffe3-0000-1000-8000-00805f9b34fb';
 
 let device = null, server = null;
 let charJoystick = null, charButton = null;
@@ -364,6 +878,11 @@ let returnStartTime = 0;
 let knobDX = 0;   // 現在のノブ位置 (px)
 let knobDY = 0;
 
+/* スライダー */
+/*
+let sliderY = 0;
+let lastSliderY = 0;
+*/
 
 /* ========= 接続 ========= */
 async function toggleConnect() {
@@ -385,6 +904,7 @@ async function connect() {
 
     charJoystick = await service.getCharacteristic(BLE_CHAR_JOYSTICK_UUID);
     charButton   = await service.getCharacteristic(BLE_CHAR_BUTTON_UUID);
+    charSlider   = await service.getCharacteristic(BLE_CHAR_SLIDER_UUID);
 
     isConnected = true;
     document.getElementById("connectBtn").textContent = "切断する";
@@ -431,180 +951,661 @@ async function sendButtons() {
 }
 
 /* ========= ジョイスティック ========= */
-const joystickArea = document.getElementById("joystickArea");
-const knob = document.getElementById("joystickKnob");
 
-const joyXEl = document.getElementById("joyX");
-const joyYEl = document.getElementById("joyY");
+class Joystick {
+  constructor(areaEl, knobEl, xOutEl, yOutEl, bleChar) {
+    this.area = areaEl;
+    this.knob = knobEl;
+    this.xOutEl = xOutEl;
+    this.yOutEl = yOutEl;
 
-let joystickActive = false;
-let joystickOrigin = { x: 0, y: 0 };
+    this.char = bleChar ?? null;   // BLE は後注入可能
 
-const KNOB_RADIUS = 48;
+    this.active = false;
+    this.activePointerId = null;
 
-function getCenter(el) {
-  const r = el.getBoundingClientRect();
-  return { x: r.left + r.width/2, y: r.top + r.height/2 };
-}
+    this.knobDX = 0;
+    this.knobDY = 0;
 
+    this.radius = 52; // 48;   // 大きくすると，外にはみ出す
 
-
-function startJoystick(cx, cy) {
-  if (returningToCenter) {
-    returningToCenter = false;
-    clearInterval(returnAnimTimer);
+    this.addEvents();
   }
 
-  joystickActive = true;
-  joystickOrigin = { x: cx, y: cy };
-}
-
-
-function moveJoystick(cx, cy) {
-  if (!joystickActive) return;
-
-  let dx = cx - joystickOrigin.x;
-  let dy = cy - joystickOrigin.y;
-
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > KNOB_RADIUS) {
-    dx = dx / dist * KNOB_RADIUS;
-    dy = dy / dist * KNOB_RADIUS;
+  setCharacteristic(c) {
+    this.char = c;
   }
 
-  knobDX = dx;
-  knobDY = dy;
+  /* ---------------- Pointer Events ---------------- */
+  addEvents() {
+    this.area.addEventListener("pointerdown", e => this.onDown(e));
+  }
 
-  knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  onDown(e) {
+    e.preventDefault();
 
-  joyX = Math.round(dx / KNOB_RADIUS * 127);
-  joyY = Math.round(dy / KNOB_RADIUS * 127);
-  joyXEl.textContent = joyX;
-  joyYEl.textContent = joyY;
+    // 他の指で操作中なら無視（マルチタッチ安全）
+    if (this.active) return;
 
-  sendJoystick();
-}
+    this.active = true;
+    this.activePointerId = e.pointerId;
 
+    const center = this.getCenter(this.area);
 
-function stopJoystick() {
-  if (!joystickActive) return;
+    this.origin = { x: center.x, y: center.y };
 
-  joystickActive = false;
-  returningToCenter = true;
+    // スティック外に出ても追跡可能にする
+    this.area.setPointerCapture(e.pointerId);
 
-  const startDX = knobDX;
-  const startDY = knobDY;
+    this.move(e.clientX, e.clientY);
 
-  const startTime = performance.now();
-  const duration = 150; // ノブが中央の戻るまでの時間 ms
+    // 動的に move / up を登録
+    this.onPointerMove = ev => {
+      if (ev.pointerId !== this.activePointerId) return;
+      this.move(ev.clientX, ev.clientY);
+    };
 
-  clearInterval(returnAnimTimer);
-  returnAnimTimer = setInterval(() => {
+    this.onPointerUp = ev => {
+      if (ev.pointerId !== this.activePointerId) return;
+      this.end();
+    };
 
-    if (!returningToCenter) {
-      clearInterval(returnAnimTimer);
-      return;
+    document.addEventListener("pointermove", this.onPointerMove);
+    document.addEventListener("pointerup", this.onPointerUp);
+    document.addEventListener("pointercancel", this.onPointerUp);
+  }
+
+  /* ---------------- Joystick Movement ---------------- */
+  move(cx, cy) {
+    let dx = cx - this.origin.x;
+    let dy = cy - this.origin.y;
+
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > this.radius) {
+      dx = dx / dist * this.radius;
+      dy = dy / dist * this.radius;
     }
 
-    const t = (performance.now() - startTime) / duration;
+    this.knobDX = dx;
+    this.knobDY = dy;
 
-    if (t >= 1) {
-      // 終了
-      knobDX = 0;
-      knobDY = 0;
-      knob.style.transform = `translate(-50%, -50%)`;
+    this.knob.style.transform =
+      `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-      joyX = 0;
-      joyY = 0;
-      joyXEl.textContent = 0;
-      joyYEl.textContent = 0;
-      sendJoystick();
+    const joyX = Math.round(dx / this.radius * 127);
+    const joyY = Math.round(dy / this.radius * 127);
 
-      clearInterval(returnAnimTimer);
-      returningToCenter = false;
-      return;
-    }
+    this.xOutEl.textContent = joyX;
+    this.yOutEl.textContent = joyY;
 
-    // 線形補間
-    knobDX = startDX * (1 - t);
-    knobDY = startDY * (1 - t);
+    this.send(joyX, joyY);
+  }
 
-    knob.style.transform = `translate(calc(-50% + ${knobDX}px), calc(-50% + ${knobDY}px))`;
+  /* ---------------- Joystick End (Return to Center) ---------------- */
+  end() {
+    this.active = false;
 
-    joyX = Math.round(knobDX / KNOB_RADIUS * 127);
-    joyY = Math.round(knobDY / KNOB_RADIUS * 127);
-    joyXEl.textContent = joyX;
-    joyYEl.textContent = joyY;
+    try {
+      this.area.releasePointerCapture(this.activePointerId);
+    } catch (_) {}
 
-    sendJoystick();
+    this.activePointerId = null;
 
-  }, 16); // 60FPS
+    // イベント解除
+    document.removeEventListener("pointermove", this.onPointerMove);
+    document.removeEventListener("pointerup", this.onPointerUp);
+    document.removeEventListener("pointercancel", this.onPointerUp);
+
+    this.returnCenter();
+  }
+
+  returnCenter() {
+    const startDX = this.knobDX;
+    const startDY = this.knobDY;
+    const startTime = performance.now();
+    const duration = 200;
+
+    const easeOutQuad = t => t * (2 - t);
+
+    const animate = () => {
+      const t = (performance.now() - startTime) / duration;
+
+      if (t >= 1) {
+        this.knob.style.transform = `translate(-50%, -50%)`;
+
+        this.xOutEl.textContent = 0;
+        this.yOutEl.textContent = 0;
+
+        this.send(0, 0);
+        return;
+      }
+
+      const e = easeOutQuad(t);
+
+      const dx = startDX * (1 - e);
+      const dy = startDY * (1 - e);
+
+      this.knob.style.transform =
+        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+      const joyX = Math.round(dx / this.radius * 127);
+      const joyY = Math.round(dy / this.radius * 127);
+
+      this.xOutEl.textContent = joyX;
+      this.yOutEl.textContent = joyY;
+
+      this.send(joyX, joyY);
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+  }
+
+  /* ---------------- BLE Send ---------------- */
+  async send(x, y) {
+    if (!isConnected || !this.char) return;
+    await this.char.writeValueWithoutResponse(new Int8Array([x, y]));
+  }
+
+  /* ---------------- Utility ---------------- */
+  getCenter(el) {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
 }
 
+/* ジョイスティックインスタンス */
 
-/* Touch */
-joystickArea.addEventListener("touchstart", e => {
-  const t = e.touches[0];
-  const c = getCenter(joystickArea);
-  startJoystick(c.x, c.y);
-  moveJoystick(t.clientX, t.clientY);
-});
-joystickArea.addEventListener("touchmove", e => {
-  const t = e.touches[0];
-  moveJoystick(t.clientX, t.clientY);
-});
-joystickArea.addEventListener("touchend", stopJoystick);
+const joy = new Joystick(
+  document.getElementById("joystickArea"),
+  document.getElementById("joystickKnob"),
+  document.getElementById("joyX"),
+  document.getElementById("joyY"),
+  null   // BLE characteristic（接続後に注入してもOK）
+);
 
-/* Mouse */
-joystickArea.addEventListener("mousedown", e => {
-  const c = getCenter(joystickArea);
-  startJoystick(c.x, c.y);
-  moveJoystick(e.clientX, e.clientY);
-});
-document.addEventListener("mousemove", e => {
-  if (joystickActive) moveJoystick(e.clientX, e.clientY);
-});
-document.addEventListener("mouseup", stopJoystick);
 
 /* ========= 各ボタン ========= */
 
-function setupButton(el) {
-  const bit = parseInt(el.dataset.bit);
-  const id = el.id.replace("btn", "ind");   // btnA → indA
+class GameButton {
+  constructor(el, bit) {
+    this.el = el;
+    this.bit = bit;
+    this.indicator = document.getElementById(el.id.replace("btn", "ind"));
+    this.activePointer = null;    // ← このボタンを押している指のID
 
-  const indicator = document.getElementById(id);
+    // 効果音の要素
+    this.soundEl = document.getElementById("btnClickSound");
 
-  const press = () => {
-    el.classList.add("pressed");      // ← 見た目：沈み込む
-    indicator.classList.add("on");     // ← LED 点灯
-    buttonState |= (1 << bit);
-    sendButtons();
+    this.addEvents();
+  }
+
+  addEvents() {
+    this.el.addEventListener("pointerdown", (e) => this.onDown(e));
+    this.el.addEventListener("pointerup", (e) => this.onUp(e));
+    this.el.addEventListener("pointercancel", (e) => this.onUp(e));
+    this.el.addEventListener("pointerleave", (e) => this.onUp(e));
+  }
+
+  onDown(e) {
+    // すでに別の指が押している場合は無視
+    if (this.activePointer !== null) return;
+
+    this.activePointer = e.pointerId;
+
+    // このボタンに pointer capture を設定（指が外へ出ても追跡できる）
+    this.el.setPointerCapture(e.pointerId);
+
+    this.el.classList.add("pressed");
+    this.indicator.classList.add("on");
+
+    buttonState |= (1 << this.bit);
+    // sendButtons();
+
+    this.playClickSound();
+  }
+
+  onUp(e) {
+    // 自分が管理する pointerId でなければ無視
+    if (e.pointerId !== this.activePointer) return;
+
+    this.activePointer = null;
+
+    this.el.classList.remove("pressed");
+    this.indicator.classList.remove("on");
+
+    buttonState &= ~(1 << this.bit);
+    // sendButtons();
+  }
+
+  playClickSound() {
+    if (!this.soundEl) return;
+
+    // ▼ 同時に複数再生できるように clone して再生
+    const snd = this.soundEl.cloneNode(true);
+    snd.volume = 0.5;      // 音量調整（0〜1）
+    snd.play().catch(()=>{});
+  }
+
+}
+
+const buttons = [
+  { id: "btnA", bit: 0 },
+  { id: "btnB", bit: 1 },
+  { id: "btnX", bit: 2 },
+  { id: "btnY", bit: 3 },
+  { id: "btnR1", bit: 4 },
+  { id: "btnR2", bit: 5 },
+  { id: "btnL1", bit: 6 },
+  { id: "btnL2", bit: 7 }
+];
+
+buttons.forEach(btn => {
+  const el = document.getElementById(btn.id);
+  new GameButton(el, btn.bit);
+});
+
+/* ========= スライダー クラス ========= */
+
+class VerticalSlider {
+  constructor(rootElement, sliderId) {
+    this.root = rootElement;
+    this.sliderId = sliderId;
+    this.char = null;  // BLE characteristic（あとで注入）
+
+    this.valueEl = this.root.querySelector(".slider-value");
+    this.knob = this.root.querySelector(".slider-knob");
+    this.marker = this.root.querySelector(".slider-marker");
+    this.container = this.root.querySelector(".slider-container");
+
+    this.active = false;
+    this.activePointerId = null;  // ★ このスライダーを操作している指
+    this.dy = 0;
+
+    //  動作，レンジモードの設定
+    this.mode = "reset";    // "reset" or "hold"
+    this.rangeMode = "signed";     // sined;-127~127，unsigned:0~255
+
+    // 動的に可動範囲を計算
+    this.height = this.container.getBoundingClientRect().height;
+    this.knobSize = this.container.getBoundingClientRect().width;
+    this.radius = (this.height - this.knobSize) / 2;
+
+    this.addEvents();
+  }
+
+  /** BLE characteristic を後注入 */
+  setCharacteristic(c) {
+    this.char = c;
+  }
+  
+  /* 外部からモード切替する setter */
+  setModes({ mode, rangeMode }) {
+    if (mode) this.mode = mode;
+    if (rangeMode) this.rangeMode = rangeMode;
+    this.updateMarker();
+  }
+
+  /* -------- Pointer Events 対応イベント登録 -------- */
+  addEvents() {
+    this.knob.addEventListener("pointerdown", (e) => this.onDown(e));
+
+    // pointermove/pointerup は pointer down 時に動的に追加
+  }
+
+  onDown(e) {
+    e.preventDefault();
+
+    // 他の指が操作中なら無視（マルチタッチ安全）
+    if (this.active) return;
+
+    this.active = true;
+    this.activePointerId = e.pointerId;
+
+    // スライダー外へ出てもイベントを受け取る
+    this.knob.setPointerCapture(e.pointerId);
+
+    this.move(e.clientY);
+
+    // move/up を document で監視
+    this.onPointerMove = (ev) => {
+      if (ev.pointerId !== this.activePointerId) return;
+      this.move(ev.clientY);
+    };
+
+    this.onPointerUp = (ev) => {
+      if (ev.pointerId !== this.activePointerId) return;
+      this.end(ev);
+    };
+
+    document.addEventListener("pointermove", this.onPointerMove);
+    document.addEventListener("pointerup", this.onPointerUp);
+    document.addEventListener("pointercancel", this.onPointerUp);
+  }
+
+  /* -------- スライダー移動 -------- */
+  move(clientY) {
+    const rect = this.container.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+
+    let dy = clientY - centerY;
+    dy = Math.max(-this.radius, Math.min(this.radius, dy));
+    this.dy = dy;
+
+    this.knob.style.transform =
+      `translate(-50%, calc(-50% + ${dy}px))`;
+
+    //  const v = Math.round(-(dy / this.radius) * 127);
+    
+    /* ▼ モード：signed / unsigned 切り替え ▼ */
+    let v = 0;
+    if (this.rangeMode === "signed") {
+      // 中央 = 0, 上 = +127, 下 = -127
+      v = Math.round(-(dy / this.radius) * 127);
+    } else {
+      // 下 = 0, 中央 = 128, 上 = 255
+      const normalized = (-dy / this.radius + 1) / 2; // 0.0〜1.0
+      v = Math.round(normalized * 255);
+    }
+
+    this.valueEl.textContent = v;
+
+    this.send(v);
+  }
+
+  /* -------- BLE送信 -------- */
+  async send(v) {
+    if (!isConnected || !this.char) return;
+    const data = new Int8Array([this.sliderId, v]);
+    await this.char.writeValueWithoutResponse(data);
+  }
+
+  /* -------- 指を離したときの処理 -------- */
+  end(e) {
+    this.active = false;
+
+    // pointer capture を解除
+    try {
+      this.knob.releasePointerCapture(this.activePointerId);
+    } catch (_) {}
+
+    this.activePointerId = null;
+
+    // move/up イベント解除
+    document.removeEventListener("pointermove", this.onPointerMove);
+    document.removeEventListener("pointerup", this.onPointerUp);
+    document.removeEventListener("pointercancel", this.onPointerUp);
+
+    /* ▼ mode 判定 ▼ */
+    if (this.mode === "reset") this.returnToZero();
+
+  }
+
+  /* -------- ０点へ戻るアニメーション -------- */
+returnToZero() {
+  const startDY = this.dy;
+  const startTime = performance.now();
+  const duration = 200;
+
+  const easeOutQuad = t => t * (2 - t);
+
+  // ▼ 0点の位置を可動範囲 dy に変換
+  let targetDY = 0;
+
+  if (this.rangeMode === "signed") {
+    // 中央が0
+    targetDY = 0;
+  } else {
+    // unsigned: 下端が0
+    targetDY = this.radius;   // dy +radius が最下端
+  }
+
+  const animate = () => {
+    const t = (performance.now() - startTime) / duration;
+
+    if (t >= 1) {
+      this.dy = targetDY;
+
+      this.knob.style.transform =
+        `translate(-50%, calc(-50% + ${targetDY}px))`;
+
+      // ▼ 0点の値を表示・送信
+      this.valueEl.textContent = 0;
+      this.send(0);
+      return;
+    }
+
+    const e = easeOutQuad(t);
+    const dy = startDY + (targetDY - startDY) * e;
+
+    this.knob.style.transform =
+      `translate(-50%, calc(-50% + ${dy}px))`;
+
+    requestAnimationFrame(animate);
   };
 
-  const release = () => {
-    el.classList.remove("pressed");   // ← 元に戻る
-    indicator.classList.remove("on");  // ← LED 消灯
-    buttonState &= ~(1 << bit);
-    sendButtons();
-  };
+  animate();
+}
 
-  // Touch
-  el.addEventListener("touchstart", press);
-  el.addEventListener("touchend", release);
-  el.addEventListener("touchcancel", release);
+/* --- モード視認用マーカーの処理 --- */
+updateMarker() {
+  if (this.mode === "reset") {
+    this.marker.style.backgroundColor = "transparent";
+    this.marker.style.color = "var(--orange-light)";
+  } else {
+    this.marker.style.backgroundColor = "var(--orange)";
+    this.marker.style.color = "var(--surface2)";
 
-  // Mouse
-  el.addEventListener("mousedown", press);
-  el.addEventListener("mouseup", release);
-  el.addEventListener("mouseleave", release);
+  }
 }
 
 
-["btnA","btnB","btnX","btnY"].forEach(id => {
-  setupButton(document.getElementById(id));
+/*
+  returnCenter() {
+    const startDY = this.dy;
+    const startTime = performance.now();
+    const duration = 200;
+
+    const easeOutQuad = t => t * (2 - t);
+
+    const animate = () => {
+      const t = (performance.now() - startTime) / duration;
+
+      if (t >= 1) {
+        this.knob.style.transform = `translate(-50%, -50%)`;
+        if (this.rangeMode === "signed") {
+            this.valueEl.textContent = 0;
+            this.send(0);
+        } else {
+            this.valueEl.textContent = 128;
+            this.send(128);
+        }
+        return;
+      }
+
+      const e = easeOutQuad(t);
+
+      const dy = startDY * (1 - e);
+      this.knob.style.transform =
+        `translate(-50%, calc(-50% + ${dy}px))`;
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+  }
+    */
+
+}
+
+/* ========= スライダーインスタンスの登録 ========= */
+
+let sliderObjects = [];
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".slider-block").forEach(block => {
+    const id = parseInt(block.dataset.sliderId);
+    sliderObjects.push(new VerticalSlider(block, id)); // ← charSlider 渡さない
+  });
 });
 
+
+/* ========= 全スライダーの設定管理クラス ========= */
+
+class SliderSettingsManager {
+  constructor(sliderObjects) {
+    this.sliders = sliderObjects;
+  }
+
+  applySettings(settings) {
+    // settings = { sliderId: { mode, rangeMode }, ... }
+    for (const sliderId in settings) {
+      const slider = this.sliders.find(s => s.sliderId == sliderId);
+      if (!slider) continue;
+      slider.setModes(settings[sliderId]);
+    }
+  }
+}
+
+/* --- スライダーマネージャーのインスタンス化 --- */
+const sliderManager = new SliderSettingsManager(sliderObjects);
+
+/* ========= 全スライダーSettingsUI ========= */
+
+class SettingsUI {
+  constructor(manager) {
+    this.manager = manager;
+
+    this.createSettingsButton();
+    this.createPopup();
+  }
+
+  createSettingsButton() {
+    this.btn = document.createElement("div");
+    this.btn.textContent = "⚙";
+    this.btn.style.position = "absolute";
+    this.btn.style.top = "12px";
+    this.btn.style.right = "16px";
+    this.btn.style.fontSize = "28px";
+    this.btn.style.cursor = "pointer";
+    this.btn.style.zIndex = "1500";
+    this.btn.style.color = "var(--text)";
+    document.body.appendChild(this.btn);
+
+    this.btn.addEventListener("click", () => this.openPopup());
+  }
+
+  createPopup() {
+    this.backdrop = document.createElement("div");
+    this.backdrop.className = "settings-backdrop";
+    this.backdrop.style.display = "none";
+
+    this.window = document.createElement("div");
+    this.window.className = "settings-window";
+
+    this.backdrop.appendChild(this.window);
+    document.body.appendChild(this.backdrop);
+  }
+
+  openPopup() {
+    this.renderContent();
+    this.backdrop.style.display = "flex";
+  }
+
+  renderContent() {
+    this.window.innerHTML = `
+      <div class="settings-title">Slider Settings</div>
+
+      <div class="settings-sliders-row">
+        ${this.manager.sliders.map(sl => `
+          <div class="settings-slider-card">
+            <div class="settings-slider-title">Slider ${sl.sliderId}</div>            
+              ${this.createOptionButtons(sl)}
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="settings-btn-row">
+        <button class="settings-btn" id="closeSettingsBtn">キャンセル</button>
+        <button class="settings-btn settings-btn-primary" id="applySettingsBtn">適　　用</button>
+      </div>
+    `;
+
+    this.attachOptionHandlers();
+
+    document.getElementById("applySettingsBtn").onclick = () => this.apply();
+    document.getElementById("closeSettingsBtn").onclick = () => this.close();
+  }
+
+  createOptionButtons(slider) {
+  return `
+    <div class="settings-section-label">モード</div>
+    <div class="settings-option-row" data-slider="${slider.sliderId}" data-type="return">
+      <div class="settings-option-btn ${slider.mode === "reset" ? "selected":""}" data-value="reset">
+        リセット
+      </div>
+      <div class="settings-option-btn ${slider.mode === "hold" ? "selected":""}" data-value="hold">
+        ホールド
+      </div>
+    </div>
+
+    <div class="settings-section-label">レンジ</div>
+    <div class="settings-option-row" data-slider="${slider.sliderId}" data-type="range">
+      <div class="settings-option-btn ${slider.rangeMode === "signed" ? "selected":""}" data-value="signed">
+        -127〜127
+      </div>
+      <div class="settings-option-btn ${slider.rangeMode === "unsigned" ? "selected":""}" data-value="unsigned">
+        0〜255
+      </div>
+    </div>
+  `;
+}
+
+apply() {
+  const settings = {};
+
+  this.manager.sliders.forEach(sl => {
+    const returnSel = this.window.querySelector(
+      `.settings-option-row[data-slider="${sl.sliderId}"][data-type="return"] .settings-option-btn.selected`
+    ).dataset.value;
+
+    const rangeSel = this.window.querySelector(
+      `.settings-option-row[data-slider="${sl.sliderId}"][data-type="range"] .settings-option-btn.selected`
+    ).dataset.value;
+
+    settings[sl.sliderId] = { mode: returnSel, rangeMode: rangeSel };
+  });
+
+  this.manager.applySettings(settings);
+  this.close();
+}
+
+  close() {
+    this.backdrop.style.display = "none";
+  }
+
+  attachOptionHandlers() {
+  this.window.querySelectorAll(".settings-option-row .settings-option-btn")
+    .forEach(btn => {
+      btn.addEventListener("click", () => {
+        const row = btn.parentElement;
+
+        // 同じ row 内の selected を全解除
+        row.querySelectorAll(".settings-option-btn").forEach(b => b.classList.remove("selected"));
+
+        // クリックされたものに selected を付与
+        btn.classList.add("selected");
+      });
+    });
+  }
+}
+
+/* --- SettingUIのインスタンス化 --- */
+const settingsUI = new SettingsUI(sliderManager);
+
 /* ========= Utility ========= */
+
 function setDebug(msg) {
   document.getElementById("debugLog").textContent = msg;
 }
