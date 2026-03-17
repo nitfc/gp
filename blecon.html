@@ -36,6 +36,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+
+    /* スワイプによる再読み込みを禁止 */
+    overscroll-behavior-y: none;
   }
 
   /* ========= 接続ボタン & ログ（上部中央） ========= */
@@ -108,6 +111,7 @@
     border: 2px solid var(--border);
     border-radius: 50%;
     box-shadow: var(--shadow-lg);
+    touch-action: none;
   }
 
   .joystick-bg-ring {
@@ -160,6 +164,8 @@
     display: flex;            /* ★ 中央揃えに必要 */
     align-items: center;      /* ★ 中央揃え */
     justify-content: center;  /* ★ 中央揃え */
+
+    touch-action: none;
   }
 
 .joy-dir-marker {
@@ -409,6 +415,8 @@
   display: flex;
   flex-direction: row;
   gap: 20px;
+  
+  touch-action: none;
 }
 
 /* 外枠 */
@@ -422,6 +430,8 @@
   border-radius: 40px;
   box-shadow: var(--shadow-lg);
   overflow: visible;
+
+  touch-action: none;
 }
 
 /* トラック中央線（ジョイスティックの crosshair と統一） */
@@ -447,7 +457,8 @@
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
-  /* pointer-events: none; */
+
+  touch-action: none;
 }
 
 /* モード視認用 */
