@@ -166,6 +166,7 @@
     justify-content: center;  /* ★ 中央揃え */
 
     touch-action: none;
+    will-change: transform;
   }
 
 .joy-dir-marker {
@@ -415,7 +416,7 @@
   display: flex;
   flex-direction: row;
   gap: 20px;
-  
+
   touch-action: none;
 }
 
@@ -459,6 +460,7 @@
   transform: translateX(-50%) translateY(-50%);
 
   touch-action: none;
+  will-change: transform;
 }
 
 /* モード視認用 */
@@ -492,6 +494,7 @@
   box-shadow: var(--shadow);
   margin-bottom: 6px;
   user-select: none;
+  pointer-events: none;
 }
 
 /* ポップアップ */
@@ -1013,9 +1016,25 @@ class Joystick {
     // 動的に move / up を登録
     this.onPointerMove = ev => {
       if (ev.pointerId !== this.activePointerId) return;
+
+      ev.preventDefault();  // 必須
+
+      this._pendingY = ev.clientY;   // 値だけ保存
+
+      if (!this._rafScheduled) {
+        this._rafScheduled = true;
+        requestAnimationFrame(() => {
+          this.move(this._pendingY);  // 実描画
+          this._rafScheduled = false;
+        });
+      }
+    };
+    /*
+    this.onPointerMove = ev => {
+      if (ev.pointerId !== this.activePointerId) return;
       this.move(ev.clientX, ev.clientY);
     };
-
+    */
     this.onPointerUp = ev => {
       if (ev.pointerId !== this.activePointerId) return;
       this.end();
@@ -1280,10 +1299,27 @@ class VerticalSlider {
     this.move(e.clientY);
 
     // move/up を document で監視
+    this.onPointerMove = ev => {
+      if (ev.pointerId !== this.activePointerId) return;
+
+      ev.preventDefault();  // 必須
+
+      this._pendingY = ev.clientY;   // 値だけ保存
+
+      if (!this._rafScheduled) {
+        this._rafScheduled = true;
+        requestAnimationFrame(() => {
+          this.move(this._pendingY);  // 実描画
+          this._rafScheduled = false;
+        });
+      }
+    };
+    /*
     this.onPointerMove = (ev) => {
       if (ev.pointerId !== this.activePointerId) return;
       this.move(ev.clientY);
     };
+    */
 
     this.onPointerUp = (ev) => {
       if (ev.pointerId !== this.activePointerId) return;
